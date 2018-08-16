@@ -25,17 +25,16 @@ pub fn invoke_commit(
 ) -> Result<Option<RuntimeValue>, Trap> {
     // deserialize args
     let args_str = runtime_args_to_utf8(&runtime, &args);
-    let res_entry: Result<CommitArgs, _> = serde_json::from_str(&args_str);
-    // Exit on error
-    if res_entry.is_err() {
-        // Return Error code in i32 format
+
+    let entry_input: CommitArgs = if let Ok(args) = serde_json::from_str(&args_str) {
+        args
+    } else {
         return Ok(Some(RuntimeValue::I32(
             HcApiReturnCode::ErrorSerdeJson as i32,
         )));
-    }
+    };
 
     // Create Chain Entry
-    let entry_input = res_entry.unwrap();
     let entry =
         ::hash_table::entry::Entry::new(&entry_input.entry_type_name, &entry_input.entry_content);
 
