@@ -72,17 +72,13 @@ impl Defn for ZomeAPIFunction {
     }
 
     fn str_to_index(s: &str) -> usize {
-        match ZomeAPIFunction::from_str(s) {
-            Ok(i) => i as usize,
-            Err(_) => ZomeAPIFunction::MissingNo as usize,
-        }
+        ZomeAPIFunction::from_str(s)
+            .and_then(|i| Ok(i as usize))
+            .unwrap_or(ZomeAPIFunction::MissingNo as usize)
     }
 
     fn from_index(i: usize) -> Self {
-        match FromPrimitive::from_usize(i) {
-            Some(v) => v,
-            None => ZomeAPIFunction::MissingNo,
-        }
+        FromPrimitive::from_usize(i).unwrap_or(ZomeAPIFunction::MissingNo)
     }
 
     fn capability(&self) -> ReservedCapabilityNames {
@@ -178,19 +174,14 @@ pub fn runtime_allocate_encode_str(
     s: &str,
 ) -> Result<Option<RuntimeValue>, Trap> {
     // write str to runtime memory
-    let mut s_bytes: Vec<_> = s.to_string().into_bytes();
+    let mut s_bytes: Vec<_> = s.bytes().collect();
     s_bytes.push(0); // Add string terminate character (important)
 
-    let allocation_of_result = runtime.memory_manager.write(&s_bytes);
-    if allocation_of_result.is_err() {
+    let encoded_allocation = if let Ok(allocation) = runtime.memory_manager.write(&s_bytes) {
+        allocation.encode()
+    } else {
         return Err(Trap::new(TrapKind::MemoryAccessOutOfBounds));
-    }
-
-    let encoded_allocation = allocation_of_result
-        // @TODO don't panic in WASM
-        // @see https://github.com/holochain/holochain-rust/issues/159
-        .unwrap()
-        .encode();
+    };
 
     // Return success in i32 format
     Ok(Some(RuntimeValue::I32(encoded_allocation as i32)))
