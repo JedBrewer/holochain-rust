@@ -1,3 +1,4 @@
+pub mod call;
 pub mod commit;
 pub mod debug;
 pub mod get;
@@ -10,7 +11,7 @@ use instance::Observer;
 use nucleus::{
     memory::SinglePageManager,
     ribosome::{
-        api::{commit::invoke_commit, debug::invoke_debug, get::invoke_get},
+        api::{call::invoke_call, commit::invoke_commit, debug::invoke_debug, get::invoke_get},
         Defn,
     },
     FunctionCall,
@@ -53,6 +54,10 @@ pub enum ZomeAPIFunction {
     /// Get an entry from source chain by key (header hash)
     /// get(key: String) -> Pair
     Get,
+
+    /// Call a zome function
+    /// get(zome: String, capability: String, function: String)
+    Call,
 }
 
 impl Defn for ZomeAPIFunction {
@@ -62,6 +67,7 @@ impl Defn for ZomeAPIFunction {
             ZomeAPIFunction::Debug => "debug",
             ZomeAPIFunction::Commit => "commit",
             ZomeAPIFunction::Get => "get",
+            ZomeAPIFunction::Call => "call",
         }
     }
 
@@ -91,6 +97,9 @@ impl Defn for ZomeAPIFunction {
             // @TODO what should this be?
             // @see https://github.com/holochain/holochain-rust/issues/133
             ZomeAPIFunction::Get => ReservedCapabilityNames::MissingNo,
+            // @TODO what should this be?
+            // @see https://github.com/holochain/holochain-rust/issues/133
+            ZomeAPIFunction::Call => ReservedCapabilityNames::MissingNo,
         }
     }
 }
@@ -102,6 +111,7 @@ impl FromStr for ZomeAPIFunction {
             "debug" => Ok(ZomeAPIFunction::Debug),
             "commit" => Ok(ZomeAPIFunction::Commit),
             "get" => Ok(ZomeAPIFunction::Get),
+            "call" => Ok(ZomeAPIFunction::Call),
             _ => Err("Cannot convert string to ZomeAPIFunction"),
         }
     }
@@ -119,6 +129,7 @@ impl ZomeAPIFunction {
             ZomeAPIFunction::Debug => invoke_debug,
             ZomeAPIFunction::Commit => invoke_commit,
             ZomeAPIFunction::Get => invoke_get,
+            ZomeAPIFunction::Call => invoke_call,
         }
     }
 }
@@ -450,6 +461,10 @@ pub mod tests {
         assert_eq!(
             ZomeAPIFunction::Get,
             ZomeAPIFunction::from_str("get").unwrap(),
+        );
+        assert_eq!(
+            ZomeAPIFunction::Call,
+            ZomeAPIFunction::from_str("call").unwrap(),
         );
 
         assert_eq!(
